@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CalendarRequest;
+use App\Mail\AdminBookingNotification;
 use App\Mail\BookingConfirmation;
 use App\Models\Calendar;
 use Exception;
@@ -48,6 +49,9 @@ class CalendarController extends Controller
             $this->addToGoogleCalendar($event);
 
             Mail::to($event->email)->send(new BookingConfirmation($event));
+
+            $adminEmail = config('mail.admin_email');
+            Mail::to($adminEmail)->send(new AdminBookingNotification($event));
             return response()->json([
                 'status' => 'success',
                 'message' => 'Booking created successfully and added to Google Calendar'

@@ -113,4 +113,16 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Admin Email Address
+    |--------------------------------------------------------------------------
+    |
+    | This value is the email address that will be used to send
+    | admin notifications. This should be set in your .env file.
+    |
+    */
+
+    'admin_email' => env('ADMIN_EMAIL'),
+
 ];
