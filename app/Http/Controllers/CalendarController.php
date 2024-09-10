@@ -19,6 +19,7 @@ class CalendarController extends Controller
 {
 
     private $calendarService;
+    private $timezone = 'UTC';
 
     public function __construct()
     {
@@ -38,30 +39,27 @@ class CalendarController extends Controller
     {
         try {
             $validatedData = $calendar->validated();
-            if (!empty($validatedData['arrival_datetime'])) {
-                $validatedData['arrival_datetime'] = Carbon::createFromFormat('Y-m-d\TH:i', $validatedData['arrival_datetime'], 'Europe/Madrid')->utc();
+
+            if (!empty($validatedData['has_arrival_booking']) && $validatedData['has_arrival_booking'] === 'Yes') {
+                $validatedData['arrival_datetime'] = $this->parseAndLocalizeDateTime($validatedData['arrival_datetime']);
+            } else {
+                $validatedData['arrival_datetime'] = null;
             }
+
             if (!empty($validatedData['departure_meeting_time'])) {
-                $validatedData['departure_meeting_time'] = Carbon::createFromFormat('Y-m-d\TH:i', $validatedData['departure_meeting_time'], 'Europe/Madrid')->utc();
+                $validatedData['departure_meeting_time'] = $this->parseAndLocalizeDateTime($validatedData['departure_meeting_time']);
             }
 
             $event = Calendar::create($validatedData);
             $this->addToGoogleCalendar($event);
 
             Mail::to($event->email)->send(new BookingConfirmation($event));
+            Mail::to(config('mail.admin_email'))->send(new AdminBookingNotification($event));
 
-            $adminEmail = config('mail.admin_email');
-            Mail::to($adminEmail)->send(new AdminBookingNotification($event));
             return response()->json([
                 'status' => 'success',
                 'message' => 'Booking created successfully and added to Google Calendar'
             ], 200);
-        } catch (ValidationException $exception) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Validation failed',
-                'errors' => $exception->errors()
-            ], 422);
         } catch (Exception $e) {
             return response()->json([
                 'status' => 'error',
@@ -72,44 +70,94 @@ class CalendarController extends Controller
 
     private function addToGoogleCalendar($event)
     {
-
         $calendarId = config('services.google.calendar_id');
-        $timezone = 'Europe/Madrid';
-        $description = "Contract Client: {$event->name}\nContract Client Email: {$event->email}\nName of Person Arriving: {$event->visitor_name}\nEmail of Person Arriving: {$event->visitor_email}\nMobile Number of Person Arriving: {$event->visitor_mobile}\nVehicle Number: {$event->vehicle_number}\nVehicle Color: {$event->vehicle_color}\nVehicle Model: {$event->vehicle_model}\nHas Arrival Flight: {$event->has_arrival_booking}\nFlight Number: {$event->arrival_mode}\nArriving Spain: {$event->arrival_datetime}\nHas Hold Luggage: {$event->has_hold_luggage}\nHas Returning Flight: {$event->has_departure_booking}\nReturning Flight Date: {$event->departure_meeting_time}\nInformation: {$event->additional_info}";
+        $eventSummary = $this->generateEventSummary($event);
+        $eventDescription = $this->generateEventDescription($event);
+
+
 
         if ($event->arrival_datetime) {
-            $startEvent = new Google_Service_Calendar_Event([
-                'summary' => $event->vehicle_number . " " . $event->vehicle_model . " " . $event->vehicle_color . " " . $event->arrival_mode,
-                'description' => $description,
+            $googleEvent = new Google_Service_Calendar_Event([
+                'summary' => $eventSummary,
+                'description' => $eventDescription,
                 'start' => [
                     'dateTime' => $event->arrival_datetime->format('c'),
-                    'timeZone' => $timezone,
+                    'timeZone' => $this->timezone,
                 ],
                 'end' => [
-                    'dateTime' => $event->arrival_datetime->addHour()->format('c'),
-                    'timeZone' => $timezone,
+                    'dateTime' => $event->arrival_datetime->format('c'),
+                    'timeZone' => $this->timezone,
                 ],
-                'colorId' => '11', // Merah
+                'colorId' => "11", // Red for arrival
             ]);
-            $this->calendarService->events->insert($calendarId, $startEvent);
+
+            $this->calendarService->events->insert($calendarId, $googleEvent);
         }
 
-        // Event untuk end date dan time
         if ($event->departure_meeting_time) {
-            $endEvent = new Google_Service_Calendar_Event([
-                'summary' => $event->vehicle_number . " " . $event->vehicle_model . " " . $event->vehicle_color . " " . $event->arrival_mode,
-                'description' => $description,
+            $departureEvent = new Google_Service_Calendar_Event([
+                'summary' => $eventSummary,
+                'description' => $eventDescription,
                 'start' => [
                     'dateTime' => $event->departure_meeting_time->format('c'),
-                    'timeZone' => $timezone,
+                    'timeZone' => $this->timezone,
                 ],
                 'end' => [
-                    'dateTime' => $event->departure_meeting_time->addHour()->format('c'),
-                    'timeZone' => $timezone
+                    'dateTime' => $event->departure_meeting_time->format('c'),
+                    'timeZone' => $this->timezone,
                 ],
-                'colorId' => '10', // Hijau
+                'colorId' => "10", // You can adjust this as needed
             ]);
-            $this->calendarService->events->insert($calendarId, $endEvent);
+
+            $this->calendarService->events->insert($calendarId, $departureEvent);
         }
+    }
+
+    private function generateEventSummary($event)
+    {
+        return "{$event->vehicle_number} {$event->vehicle_model} {$event->vehicle_color} {$event->arrival_mode}";
+    }
+
+    private function generateEventDescription($event)
+    {
+        $description = "Contract Client: {$event->name}\n" .
+            "Contract Client Email: {$event->email}\n" .
+            "Name of person arriving: {$event->visitor_name}\n" .
+            "Mobile of person arriving: {$event->visitor_mobile}\n" .
+            "Email of person arriving: {$event->visitor_email}\n" .
+            "Vehicle Number: {$event->vehicle_number}\n" .
+            "Vehicle Colour: {$event->vehicle_color}\n" .
+            "Vehicle Model: {$event->vehicle_model}\n" .
+            "Has arrival flight: " . ($event->has_arrival_booking ? 'Yes' : 'No') . "\n";
+        if (!empty($event->arrival_mode)) {
+            $description .= "Flight Number: {$event->arrival_mode}\n";
+        }
+
+        if ($event->arrival_datetime) {
+            $description .= "(Arriving Spain) Flight Number Date/Time: " . $this->formatDateTime($event->arrival_datetime) . "\n";
+        }
+
+        $description .= "Do you arrive with Hold Luggage: " . ($event->has_hold_luggage ? 'Yes' : 'No') . "\n";
+
+        if ($event->departure_meeting_time) {
+            $description .= "(Departing Spain NOT TAKE OFF TIME)Meeting time at Departures: " . $this->formatDateTime($event->departure_meeting_time) . "\n";
+        }
+
+        $description .=
+            "Additional info: {$event->additional_info}";
+
+        return $description;
+    }
+
+    private function formatDateTime($dateTime)
+    {
+        if (!$dateTime) return 'Not specified';
+        return $dateTime->format('D jS M \'y H:i');
+    }
+
+    private function parseAndLocalizeDateTime($dateTimeString)
+    {
+        return Carbon::createFromFormat('Y-m-d\TH:i', $dateTimeString, 'UTC')
+            ->setTimezone($this->timezone);
     }
 }

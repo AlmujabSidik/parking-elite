@@ -1,7 +1,8 @@
 <x-layout>
     <div class="relative top-0 bottom-0 right-0 flex-shrink-0 hidden w-1/3 overflow-hidden bg-cover lg:block">
         <div class="absolute inset-0 z-20 w-full h-full opacity-70 bg-gradient-to-t from-black"></div>
-        <img src="https://elitecarparking.es/wp-content/uploads/2024/09/car-park.png" class="z-10 object-cover w-full h-full" />
+        <img src="https://elitecarparking.es/wp-content/uploads/2024/09/car-park.png"
+            class="z-10 object-cover w-full h-full" />
     </div>
     <div class="relative flex flex-col flex-wrap items-center w-full h-full px-8">
         <div x-data="formBooking" class="relative w-full max-w-lg mx-auto py-16 lg:mb-0">
@@ -13,7 +14,8 @@
                         information to make arrangements with us.</p>
                 </div>
                 <x-form-booking />
-                <p class="px-8 mt-1 text-sm text-center text-neutral-500">By submitting this booking form you agree that you have read & accept the terms & privacy policies.</p>
+                <p class="px-8 mt-1 text-sm text-center text-neutral-500">By submitting this booking form you agree that
+                    you have read & accept the terms & privacy policies.</p>
                 <hr class="m-10" />
             </div>
 
@@ -34,7 +36,12 @@
             },
 
             checkOfficeHours() {
-                const now = new Date();
+                // Get current date and time in Madrid
+                const madridTime = new Date().toLocaleString("en-US", {
+                    timeZone: "Europe/Madrid"
+                });
+                const now = new Date(madridTime);
+
                 const day = now.getDay(); // 0 is Sunday, 6 is Saturday
                 const hour = now.getHours();
                 const minute = now.getMinutes();
