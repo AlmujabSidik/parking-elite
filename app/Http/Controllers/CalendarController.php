@@ -7,19 +7,21 @@ use App\Mail\AdminBookingNotification;
 use App\Mail\BookingConfirmation;
 use App\Models\Calendar;
 use Exception;
-use Illuminate\Http\Request;
 use Google_Client;
 use Google_Service_Calendar;
 use Google_Service_Calendar_Event;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Validation\ValidationException;
 
 class CalendarController extends Controller
 {
 
     private $calendarService;
     private $timezone = 'UTC';
+    private $weekdayStartTime = '09:00';
+    private $weekdayEndTime = '18:00';
+    private $weekendStartTime = '09:00';
+    private $weekendEndTime = '16:00';
 
     public function __construct()
     {
@@ -30,7 +32,6 @@ class CalendarController extends Controller
     }
     public function index()
     {
-
         $events = Calendar::latest()->get();
         return view('calendar', compact('events'));
     }
@@ -40,15 +41,42 @@ class CalendarController extends Controller
         try {
             $validatedData = $calendar->validated();
 
+            $arrivalDateTime = null;
+            $departureDateTime = null;
+
+            if (!$this->isWithinBookingHours()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $this->getBookingHoursErrorMessage()
+                ], 400);
+            }
+
             if (!empty($validatedData['has_arrival_booking']) && $validatedData['has_arrival_booking'] === 'Yes') {
-                $validatedData['arrival_datetime'] = $this->parseAndLocalizeDateTime($validatedData['arrival_datetime']);
-            } else {
-                $validatedData['arrival_datetime'] = null;
+                $arrivalDateTime = $this->parseAndLocalizeDateTime($validatedData['arrival_datetime']);
             }
 
             if (!empty($validatedData['departure_meeting_time'])) {
-                $validatedData['departure_meeting_time'] = $this->parseAndLocalizeDateTime($validatedData['departure_meeting_time']);
+                $departureDateTime = $this->parseAndLocalizeDateTime($validatedData['departure_meeting_time']);
             }
+
+            // Check if at least one of arrival or departure is provided
+            if (!$arrivalDateTime && !$departureDateTime) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'At least one of arrival or departure time must be provided.'
+                ], 400);
+            }
+
+            // Check if the booking is at least 24 hours in advance
+            if (!$this->isValidBookingTime($arrivalDateTime, $departureDateTime)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Bookings must be made at least 24 hours in advance.'
+                ], 400);
+            }
+
+            $validatedData['arrival_datetime'] = $arrivalDateTime;
+            $validatedData['departure_meeting_time'] = $departureDateTime;
 
             $event = Calendar::create($validatedData);
             $this->addToGoogleCalendar($event);
@@ -71,12 +99,10 @@ class CalendarController extends Controller
     private function addToGoogleCalendar($event)
     {
         $calendarId = config('services.google.calendar_id');
-        $eventSummary = $this->generateEventSummary($event);
         $eventDescription = $this->generateEventDescription($event);
 
-
-
         if ($event->arrival_datetime) {
+            $eventSummary = "{$event->vehicle_number} {$event->vehicle_model} {$event->vehicle_color} {$event->arrival_mode}";
             $googleEvent = new Google_Service_Calendar_Event([
                 'summary' => $eventSummary,
                 'description' => $eventDescription,
@@ -88,13 +114,14 @@ class CalendarController extends Controller
                     'dateTime' => $event->arrival_datetime->format('c'),
                     'timeZone' => $this->timezone,
                 ],
-                'colorId' => "11", // Red for arrival
+                'colorId' => "11",
             ]);
 
             $this->calendarService->events->insert($calendarId, $googleEvent);
         }
 
         if ($event->departure_meeting_time) {
+            $eventSummary = "{$event->vehicle_number} {$event->vehicle_model} {$event->vehicle_color}";
             $departureEvent = new Google_Service_Calendar_Event([
                 'summary' => $eventSummary,
                 'description' => $eventDescription,
@@ -106,16 +133,55 @@ class CalendarController extends Controller
                     'dateTime' => $event->departure_meeting_time->format('c'),
                     'timeZone' => $this->timezone,
                 ],
-                'colorId' => "10", // You can adjust this as needed
+                'colorId' => "10",
             ]);
 
             $this->calendarService->events->insert($calendarId, $departureEvent);
         }
     }
 
-    private function generateEventSummary($event)
+    private function isWithinBookingHours()
     {
-        return "{$event->vehicle_number} {$event->vehicle_model} {$event->vehicle_color} {$event->arrival_mode}";
+        $now = Carbon::now($this->timezone);
+        $dayOfWeek = $now->dayOfWeek;
+
+        if ($dayOfWeek >= Carbon::MONDAY && $dayOfWeek <= Carbon::FRIDAY) {
+            $startTime = Carbon::createFromTimeString($this->weekdayStartTime, $this->timezone);
+            $endTime = Carbon::createFromTimeString($this->weekdayEndTime, $this->timezone);
+        } else {
+            $startTime = Carbon::createFromTimeString($this->weekendStartTime, $this->timezone);
+            $endTime = Carbon::createFromTimeString($this->weekendEndTime, $this->timezone);
+        }
+
+        return $now->between($startTime, $endTime);
+    }
+
+    private function getBookingHoursErrorMessage()
+    {
+        $now = Carbon::now($this->timezone);
+        $dayOfWeek = $now->dayOfWeek;
+
+        if ($dayOfWeek >= Carbon::MONDAY && $dayOfWeek <= Carbon::FRIDAY) {
+            return "Booking can only be made between {$this->weekdayStartTime} and {$this->weekdayEndTime} on weekdays.";
+        } else {
+            return "Booking can only be made between {$this->weekendStartTime} and {$this->weekendEndTime} on weekends.";
+        }
+    }
+
+    private function isValidBookingTime($arrivalDateTime, $departureDateTime)
+    {
+        $now = Carbon::now($this->timezone);
+        $minimumBookingTime = $now->copy()->addHours(24);
+
+        if ($arrivalDateTime && $arrivalDateTime <= $minimumBookingTime) {
+            return false;
+        }
+
+        if ($departureDateTime && $departureDateTime <= $minimumBookingTime) {
+            return false;
+        }
+
+        return true;
     }
 
     private function generateEventDescription($event)

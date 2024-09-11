@@ -1,4 +1,5 @@
-<form action="{{ route('calendar.store') }}" method="POST" x-data="formHandler()" @submit.prevent="submitForm" class="space-y-2">
+<form action="{{ route('calendar.store') }}" method="POST" x-data="formHandler()" @submit.prevent="submitForm"
+    class="space-y-2">
     @csrf
     <x-required-input />
     <x-arriving-input />
@@ -13,7 +14,8 @@
             </div>
         </template>
     </div>
-    <button type="submit" :disabled="isSubmitting" class="inline-flex items-center justify-center w-full h-10 px-4 py-2 text-sm font-medium tracking-wide text-white transition-colors duration-200 rounded-md bg-neutral-950 hover:bg-neutral-900 focus:ring-2 focus:ring-offset-2 focus:ring-neutral-900 focus:shadow-outline focus:outline-none">
+    <button type="submit" :disabled="isSubmitting"
+        class="inline-flex items-center justify-center w-full h-10 px-4 py-2 text-sm font-medium tracking-wide text-white transition-colors duration-200 rounded-md bg-neutral-950 hover:bg-neutral-900 focus:ring-2 focus:ring-offset-2 focus:ring-neutral-900 focus:shadow-outline focus:outline-none">
         <span x-show="!isSubmitting">Book it</span>
         <span x-show="isSubmitting">Processing booking...</span>
     </button>
@@ -46,6 +48,14 @@
                         if (response.status === 422) {
                             this.errors = result.errors;
                             this.hasErrors = true;
+                        } else if (response.status === 400) {
+                            // Handle the 400 Bad Request error (invalid booking time or outside operation hours)
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Invalid Booking',
+                                text: result.message,
+                                confirmButtonText: 'OK'
+                            });
                         } else {
                             throw new Error(result.message || 'An error occurred');
                         }
