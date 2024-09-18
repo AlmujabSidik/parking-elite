@@ -2,7 +2,7 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "dev": "vite --host booking.test",
+        "dev": "vite --host parking-elite.test",
         "build": "vite build"
     },
     "devDependencies": {

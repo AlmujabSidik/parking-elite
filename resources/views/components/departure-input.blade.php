@@ -36,9 +36,6 @@
     document.addEventListener('alpine:init', () => {
         Alpine.data('departureInput', () => ({
             hasDepartureBooking: 'Yes',
-            logHasDepartureBooking() {
-                console.log(this.hasDepartureBooking)
-            }
         }))
     })
 </script>

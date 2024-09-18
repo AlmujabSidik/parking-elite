@@ -9,6 +9,6 @@ export default defineConfig({
         }),
     ],
     server: {
-        host: "booking.test",
+        host: "parking-elite.test",
     },
 });

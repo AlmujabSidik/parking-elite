@@ -52,9 +52,7 @@
             hasArrivalBooking: 'Yes',
             arrivalMode: '',
             arrivalDateTime: '',
-            logHasArrivalBooking() {
-                console.log(this.hasArrivalBooking)
-            }
+
         }))
     })
 </script>

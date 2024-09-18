@@ -28,7 +28,6 @@ return new class extends Migration
             $table->enum('has_departure_booking', ['Yes', 'No'])->default('Yes');
             $table->dateTime('departure_meeting_time')->nullable();
             $table->text('additional_info')->nullable();
-            $table->timestamp('last_submission')->nullable();
             $table->string('google_event_id')->nullable()->unique();
             $table->timestamps();
         });
