@@ -102,8 +102,10 @@
                     <img src="https://elitecarparking.es/wp-content/uploads/2024/08/ELITE-CAR-PARKING-1-107x107.png"
                         alt="Elite Car Parking Logo" width="100">
                     <h1>Elite Car Parking</h1>
-                    <p style="color: #ffffff;">Calle Argonautas, 15, Malaga 29004</p>
-                    <p class="contact">Collection & Return: 0034 662 230 128</p>
+                    <p style="color: #ffffff;">Avenida del Comandante García Morato, 50, Oficina 4A
+                        29004 Málaga, Spain</p>
+                    <p class="contact">Telephone Number: +34 672 576 394</p>
+                    <p class="contact">Email Address: eliteparkinganddetailing@gmail.com</p>
                 </td>
             </tr>
 
@@ -142,16 +144,15 @@
                                 @if ($booking->has_arrival_booking == 'Yes')
                                     <p><strong>Has Arrival Booking: </strong> {{ $booking->has_arrival_booking }}</p>
                                     <p><strong>Arrival Flight:</strong> {{ $booking->arrival_mode }} on
-                                        {{ $booking->arrival_datetime }}</p>
+                                        {{ $booking->arrival_datetime->format('d M Y H:i') }}</p>
                                 @endif
 
                                 <p><strong>Hold Luggage:</strong> {{ $booking->has_hold_luggage }}</p>
 
                                 @if ($booking->has_departure_booking == 'Yes')
                                     <p><strong>Has Departure Booking: </strong> {{ $booking->has_departure_booking }}
-                                    </p>
                                     <p><strong>Departure Meeting Time:</strong>
-                                        {{ $booking->departure_meeting_time }} at Departures
+                                        {{ $booking->departure_meeting_time->format('d M Y H:i') }} at Departures
                                     </p>
                                 @endif
 
@@ -197,7 +198,7 @@
             <tr>
                 <td class="footer" align="center" style="padding: 20px;">
                     <p>Thank you for choosing Elite Car Parking.</p>
-                    <p>If you have any questions, please contact us at <span class="contact">0034 662 230 128</span></p>
+                    <p>If you have any questions, please contact us at <span class="contact">+34 672 576 394</span></p>
                 </td>
             </tr>
         </table>
