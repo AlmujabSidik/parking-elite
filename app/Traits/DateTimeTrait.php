@@ -66,6 +66,6 @@ trait DateTimeTrait
     public function formatDateTime($dateTime)
     {
         if (!$dateTime) return 'Not specified';
-        return $dateTime->format('D jS M \'y H:i');
+        return $dateTime->format('d M Y H:i');
     }
 }

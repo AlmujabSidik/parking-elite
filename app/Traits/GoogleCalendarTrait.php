@@ -61,33 +61,32 @@ trait GoogleCalendarTrait
 
     private function generateEventDescription($event): string
     {
-        $description = "Contract Client: {$event->name}\n" .
-            "Contract Client Email: {$event->email}\n" .
-            "Name of person arriving: {$event->visitor_name}\n" .
-            "Mobile of person arriving: {$event->visitor_mobile}\n" .
-            "Email of person arriving: {$event->visitor_email}\n" .
-            "Vehicle Number: {$event->vehicle_number}\n" .
-            "Vehicle Colour: {$event->vehicle_color}\n" .
-            "Vehicle Model: {$event->vehicle_model}\n" .
-            "Has arrival flight: " . ($event->has_arrival_booking ? 'Yes' : 'No') . "\n";
+        $description = "<strong>Contract Client:</strong> {$event->name}\n" .
+            "<strong>Contract Client Email:</strong> {$event->email}\n" .
+            "<strong>Name of person arriving:</strong> {$event->visitor_name}\n" .
+            "<strong>Mobile of person arriving:</strong> {$event->visitor_mobile}\n" .
+            "<strong>Email of person arriving:</strong> {$event->visitor_email}\n" .
+            "<strong>Vehicle Number:</strong> {$event->vehicle_number}\n" .
+            "<strong>Vehicle Colour:</strong> {$event->vehicle_color}\n" .
+            "<strong>Vehicle Model:</strong> {$event->vehicle_model}\n" .
+            "<strong>Has arrival flight:</strong> " . ($event->has_arrival_booking ? 'Yes' : 'No') . "\n";
+
         if (!empty($event->arrival_mode)) {
-            $description .= "Flight Number: {$event->arrival_mode}\n";
+            $description .= "<strong>Flight Number:</strong> {$event->arrival_mode}\n";
         }
 
         if ($event->arrival_datetime) {
-            $description .= "(Arriving Spain) Flight Number Date/Time: " . $this->formatDateTime($event->arrival_datetime) . "\n";
+            $description .= "<strong>(Arriving Spain) Flight Number Date/Time:</strong> " . $this->formatDateTime($event->arrival_datetime) . "\n";
         }
 
-        $description .= "Do you arrive with Hold Luggage: " . ($event->has_hold_luggage ? 'Yes' : 'No') . "\n";
+        $description .= "<strong>Do you arrive with Hold Luggage:</strong> " . ($event->has_hold_luggage ? 'Yes' : 'No') . "\n";
 
         if ($event->departure_meeting_time) {
-            $description .= "(Departing Spain NOT TAKE OFF TIME)Meeting time at Departures: " . $this->formatDateTime($event->departure_meeting_time) . "\n";
+            $description .= "<strong>(Departing Spain NOT TAKE OFF TIME)Meeting time at Departures:</strong> " . $this->formatDateTime($event->departure_meeting_time) . "\n";
         }
 
-        $description .=
-            "Additional info: {$event->additional_info}";
+        $description .= "<strong>Additional info:</strong> {$event->additional_info}";
 
         return $description;
     }
-
 }
