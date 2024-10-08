@@ -7,7 +7,7 @@ use Carbon\Carbon;
 trait DateTimeTrait
 {
     private $timezone = 'UTC';
-    private $weekdayStartTime = '09:00';
+    private $weekdayStartTime = '00:00';
     private $weekdayEndTime = '18:00';
     private $weekendStartTime = '09:00';
     private $weekendEndTime = '16:00';

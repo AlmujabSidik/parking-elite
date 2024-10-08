@@ -7,7 +7,7 @@
     <div class="relative flex flex-col flex-wrap items-center w-full h-full px-8">
         <div x-data="formBooking" class="relative w-full max-w-lg mx-auto py-16 lg:mb-0">
             <img src="{{ asset('/logo-comp.webp') }}" alt="Logo Elite Car Parking" class="w-16 mb-6" />
-            <div x-show="isShowForm" class="relative">
+            <div class="relative">
                 <div class="flex flex-col mb-6 space-y-2">
                     <h1 class="text-2xl font-semibold tracking-tight">Contract Clients</h1>
                     <p class="text-sm text-neutral-500">Booking Form! Please complete the form below with ALL
